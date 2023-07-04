@@ -24,12 +24,12 @@ struct Utf8Output {
     status: ExitStatus,
 }
 
-/// Make sure that direcetory exists.
+/// 确保目标路径存在
 fn ensure_directory(path: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(path)
 }
 
-/// Clears all files from the directory, and recreates it.
+/// 清空路径下的所有文件
 fn clear_directory(path: &Path) -> std::io::Result<()> {
     std::fs::remove_dir_all(path)?;
     ensure_directory(path)
@@ -40,17 +40,19 @@ pub fn get_default_target() -> anyhow::Result<String> {
     get_rustc_info("host: ")
 }
 
+// 获取rustc信息，如获取编译平台，用于构造默认目标平台
 fn get_rustc_info(field: &str) -> anyhow::Result<String> {
-    // Query rustc for defaults.
     let output = run_command("rustc", &["-vV"])?;
 
-    // Parse the field from stdout.
     let host = output
         .stdout
         .lines()
+        // 寻找xx开头的字符
         .find(|l| l.starts_with(field))
+        // 去除前后空格
         .map(|l| l[field.len()..].trim())
         .ok_or_else(|| anyhow!("Failed to parse field {} from rustc output.", field))?
+        // clone
         .to_owned();
     Ok(host)
 }

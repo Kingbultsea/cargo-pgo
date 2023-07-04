@@ -18,9 +18,6 @@ enum Args {
 #[clap(setting(clap::AppSettings::DeriveDisplayOrder))]
 enum Subcommand {
     Info,
-    /// Execute a `cargo` command to create PGO-instrumented artifact(s).
-    /// After the artifacts are executed, they will produce profiles that can be later used in the
-    /// `optimize` step.
     Instrument(PgoInstrumentArgs),
 }
 

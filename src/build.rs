@@ -4,7 +4,7 @@ use std::io::{BufReader, Write as _};
 use std::collections::HashMap;
 use crate::get_default_target;
 
-// 当有id和fmt的write, 可以使用as来兼容
+// 当有io和fmt的write, 可以使用as来兼容
 use std::fmt::Write as _;
 
 // Defalut默认值, filtered为空Vec contains_target
@@ -35,6 +35,12 @@ pub struct RunningCargo {
     message_iter: MessageIter<BufReader<ChildStdout>>,
 }
 
+impl RunningCargo {
+    pub fn message(&mut self) -> &mut MessageIter<BufReader<ChildStdout>> {
+        &mut self.message_iter
+    }
+}
+
 impl CargoCommand {
     pub fn to_str(&self) -> &str {
         match self {
@@ -44,13 +50,12 @@ impl CargoCommand {
     }
 }
 
-// 运行cargo
-// todo 为什么不用Vec<&str>呢
 pub fn cargo_command_with_flags(
     command: CargoCommand,
     flags: &str,
     cargo_args: Vec<String>,
 ) -> anyhow::Result<RunningCargo> {
+    // 环境变量值
     let mut rustflags = std::env::var("RUSTFLAGS").unwrap_or_default();
     write!(&mut rustflags, " {}", flags).unwrap();
 
@@ -111,15 +116,19 @@ fn cargo_command(
                 error
             )
         })?;
-        command.args(&["--target", &default_target]);
+        command.args(&["--target", default_target.as_str()]);
     }
 
+    // 命令行参数
     for arg in parsed_args.filtered {
         command.arg(arg);
     }
+
+    // 环境变量参数
     for (key, value) in env {
         command.env(key, value);
     }
+
     log::debug!("Executing cargo command: {:?}", command);
     Ok(command.spawn()?)
 }
@@ -147,4 +156,34 @@ fn parse_cargo_args(cargo_args: Vec<String>) -> CargoArgs {
         }
     }
     args
+}
+
+/// artifact.target.kind 是一个包含目标文件或二进制可执行文件类型的 Vec<String>。每个元素都表示一个文件类型，可以是以下之一：
+/// 
+/// "bin"：表示二进制可执行文件
+/// "lib"：表示库文件（通常是动态链接库或静态库）
+/// "cdylib"：表示动态链接库
+/// "rlib"：表示 Rust 静态库
+/// "dylib"：表示动态链接库（平台无关）
+/// "staticlib"：表示静态库（平台无关）
+/// "proc-macro"：表示过程宏库
+/// "test"：表示测试文件
+/// "bench"：表示基准测试文件
+/// "example"：表示示例文件
+pub fn get_artifact_kind(artifact: &Artifact) -> &str {
+    for kind in &artifact.target.kind {
+        match kind.as_str() {
+            "bin" => {
+                return "binary";
+            }
+            "bench" => {
+                return "benchmark";
+            }
+            "example" => {
+                return "example";
+            }
+            _ => {}
+        }
+    }
+    "artifact"
 }
