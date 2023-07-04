@@ -35,5 +35,6 @@ fn run() -> anyhow::Result<()> {
 }
 
 fn main() {
+    env_logger::init();
     let _ = run();
 }

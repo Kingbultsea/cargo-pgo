@@ -19,6 +19,8 @@ impl CargoContext {
 
 /// Finds Cargo metadata from the current directory.
 pub fn get_cargo_ctx() -> anyhow::Result<CargoContext> {
+    log::info!("正在执行MetadataCommand，获取项目信息，该过程可能会比较久。");
+
     let cmd = cargo_metadata::MetadataCommand::new();
     let metadata = cmd
         .exec()
@@ -27,8 +29,6 @@ pub fn get_cargo_ctx() -> anyhow::Result<CargoContext> {
     // target构建的path
     // 如/Users/dorho/Desktop/rust-work-place/cargo-pgoe/target
     let buf_path = metadata.target_directory.into_std_path_buf();
-
-    println!("查看meta的buf_path: {}", buf_path.display());
 
     Ok(CargoContext {
         target_directory: buf_path,

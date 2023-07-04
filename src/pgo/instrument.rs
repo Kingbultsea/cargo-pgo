@@ -23,16 +23,14 @@ pub struct PgoInstrumentArgs {
 pub fn pgo_instrument(ctx: CargoContext, args: PgoInstrumentArgs) -> anyhow::Result<()> {
     let pgo_dir = ctx.get_pgo_directory()?;
 
-    println!("{:?}", args);
-
     if !args.keep_profiles {
-        log::info!("PGO profile directory will be cleared.");
+        log::info!("PGO文件会被清空 {}", pgo_dir.display());
         clear_directory(&pgo_dir)?;
     }
 
     // 创建pgo文件夹
     log::info!(
-        "PGO profiles will be stored into {}.",
+        "PGO文件将被生成在 {}。",
         cli_format_path(pgo_dir.display())
     );
 
@@ -49,13 +47,12 @@ pub fn pgo_instrument(ctx: CargoContext, args: PgoInstrumentArgs) -> anyhow::Res
                 if let Some(ref executable) = artifact.executable {
                     if let CargoCommand::Build = args.command {
                         log::info!(
-                            "PGO构建成功： {} {}",
+                            "PGO构建成功：{} {}",
                             get_artifact_kind(&artifact).yellow(),
                             artifact.target.name.blue()
                         );
                         log::info!(
-                            "Now run {} on your workload.\nFor more precise profiles, run \
-it with the following environment variable: {}.",
+                            "运行 {} \n将会生成: {}.",
                             cli_format_path(&executable),
                             format!(
                                 "LLVM_PROFILE_FILE={}/{}_%m_%p.profraw",
