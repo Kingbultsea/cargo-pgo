@@ -3,14 +3,6 @@ name = "cargo-pgoe"
 version = "0.1.1"
 edition = "2021"
 
-[[bin]]
-name = "cargo-pgoe"
-path = "src/main.rs"
-
-[lib]
-name = "cargo-pgoe"
-path = "src/lib.rs"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

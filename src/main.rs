@@ -1,9 +1,9 @@
 mod check;
-mod pgo;
 
 use clap::Parser;
 use check::environment_info;
-use pgo::instrument::{PgoInstrumentArgs, pgo_instrument};
+use cargo_pgoe::get_cargo_ctx;
+use cargo_pgoe::pgo::instrument::{PgoInstrumentArgs, pgo_instrument};
 
 #[derive(clap::Parser, Debug)]
 #[clap(author, version, about)]
@@ -24,19 +24,19 @@ enum Subcommand {
     Instrument(PgoInstrumentArgs),
 }
 
-fn run() {
+fn run() -> anyhow::Result<()> {
     let args = Args::parse();
+
+    let ctx = get_cargo_ctx()?;
 
     let Args::Pgoe(args) = args;
 
-    let _ = match args {
+    match args {
         Subcommand::Info => environment_info(),
-        Subcommand::Instrument(_) => todo!(),
-    };
-
-    println!("打印结构体：{:?}", args);
+        Subcommand::Instrument(args) => pgo_instrument(ctx, args),
+    }
 }
 
 fn main() {
-    run();
+    let _ = run();
 }
