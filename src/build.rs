@@ -2,6 +2,7 @@ use std::process::{Child, ChildStdout, Command, Stdio};
 use cargo_metadata::{Artifact, Message, MessageIter};
 use std::io::{BufReader, Write as _};
 use std::collections::HashMap;
+use crate::get_default_target;
 
 // 当有id和fmt的write, 可以使用as来兼容
 use std::fmt::Write as _;
@@ -9,7 +10,9 @@ use std::fmt::Write as _;
 // Defalut默认值, filtered为空Vec contains_target
 #[derive(Debug, Default)]
 struct CargoArgs {
+    /// 被传递到rustc的参数
     filtered: Vec<String>,
+    /// 检测是否存在`--target`
     contains_target: bool,
 }
 
@@ -68,24 +71,28 @@ pub fn cargo_command_with_flags(
     })
 }
 
-/// Spawn `cargo` command in release mode with the provided env variables and Cargo arguments.
+/// cargo command spawn
 fn cargo_command(
     cargo_cmd: CargoCommand,
     cargo_args: Vec<String>,
     env: HashMap<String, String>,
     release_mode: ReleaseMode,
 ) -> anyhow::Result<Child> {
+    // 过滤`--message-format`  `--release`的warning输出（自动添加）  `--target`标准化为CargoArgs Struct，其余的push进filtered字段
     let parsed_args = parse_cargo_args(cargo_args);
 
+    // `--message-format`
     let mut command = Command::new("cargo");
     command.args(&[
         cargo_cmd.to_str(),
         "--message-format",
+        // `json-diagnostic-rendered-ansi` 表示消息以 JSON 格式输出，并带有 ANSI 转义码，用于渲染颜色和格式
         "json-diagnostic-rendered-ansi",
     ]);
 
-    // 将子进程的标准输入与当前进程的标准输入相同，即子进程继承了当前进程的标准输入。这意味着子进程可以从标准输入读取数据
+    // 将标准输入流与当前进程的标准输入进行关联（继承）
     command.stdin(Stdio::inherit());
+    // 将标准输出流设置为管道的作用是将子进程的输出结果通过管道传递给当前进程，以便在当前进程中进行处理或显示
     command.stdout(Stdio::piped());
     command.stderr(Stdio::inherit());
 
@@ -96,8 +103,7 @@ fn cargo_command(
         ReleaseMode::NoRelease => {}
     }
 
-    // --target is passed to avoid instrumenting build scripts
-    // See https://doc.rust-lang.org/rustc/profile-guided-optimization.html#a-complete-cargo-workflow
+    // 如没有指定`--target`，则获取构建目标平台（默认），如--target=x86_64-unknown-linux-gnu
     if !parsed_args.contains_target {
         let default_target = get_default_target().map_err(|error| {
             anyhow::anyhow!(
@@ -124,14 +130,14 @@ fn parse_cargo_args(cargo_args: Vec<String>) -> CargoArgs {
     let mut iterator = cargo_args.into_iter();
     while let Some(arg) = iterator.next() {
         match arg.as_str() {
-            // Skip `--release`, we will pass it by ourselves.
+            // 自动添加`--release`
             "--release" => {
-                log::warn!("Do not pass `--release` manually, it will be added automatically by `cargo-pgo`");
+                log::warn!("`--release`会被自动添加，不需要额外设置");
             }
-            // Skip `--message-format`, we need it to be JSON.
+            // 自动添加`--message-format` 用于指定输出消息的格式
             "--message-format" => {
-                log::warn!("Do not pass `--message-format` manually, it will be added automatically by `cargo-pgo`");
-                iterator.next(); // skip flag value
+                log::warn!("`--message-format`会被自动添加，不需要额外设置");
+                iterator.next(); // 丢弃值
             }
             "--target" => {
                 args.contains_target = true;
