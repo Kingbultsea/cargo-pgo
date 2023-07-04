@@ -1,6 +1,6 @@
 use std::process::{Child, ChildStdout, Command, Stdio};
 use cargo_metadata::{Artifact, Message, MessageIter};
-use std::io::{BufReader, Write as _};
+use std::io::{BufReader, Write};
 use std::collections::HashMap;
 use crate::get_default_target;
 
@@ -112,7 +112,7 @@ fn cargo_command(
     if !parsed_args.contains_target {
         let default_target = get_default_target().map_err(|error| {
             anyhow::anyhow!(
-                "Unable to find default target triple for your platform: {:?}",
+                "无法找到编译平台: {:?}",
                 error
             )
         })?;
@@ -159,7 +159,6 @@ fn parse_cargo_args(cargo_args: Vec<String>) -> CargoArgs {
 }
 
 /// artifact.target.kind 是一个包含目标文件或二进制可执行文件类型的 Vec<String>。每个元素都表示一个文件类型，可以是以下之一：
-/// 
 /// "bin"：表示二进制可执行文件
 /// "lib"：表示库文件（通常是动态链接库或静态库）
 /// "cdylib"：表示动态链接库
@@ -186,4 +185,34 @@ pub fn get_artifact_kind(artifact: &Artifact) -> &str {
         }
     }
     "artifact"
+}
+
+pub fn handle_metadata_message(message: Message) {
+    let stdout = std::io::stdout();
+    let mut stdout = stdout.lock();
+    write_metadata_message(&mut stdout, message);
+
+    // 调用 flush 方法将立即刷新流的缓冲区，确保所有缓冲数据都被写入底层的输出源
+    stdout.flush().unwrap();
+}
+
+fn write_metadata_message<W: Write>(mut stream: W, message: Message) {
+    match message {
+        Message::TextLine(line) => {
+            log::debug!("TextLine {}", line);
+            writeln!(stream, "{}", line).unwrap();
+        }
+        Message::CompilerMessage(message) => {
+            log::debug!("CompilerMessage {}", message);
+            write!(
+                stream,
+                "{}",
+                message.message.rendered.unwrap_or(message.message.message)
+            )
+            .unwrap();
+        }
+        _ => {
+            log::debug!("Metadata output: {:?}", message);
+        }
+    }
 }

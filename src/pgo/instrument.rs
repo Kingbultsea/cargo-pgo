@@ -1,4 +1,4 @@
-use crate::build::{cargo_command_with_flags, CargoCommand, get_artifact_kind};
+use crate::build::{cargo_command_with_flags, CargoCommand, get_artifact_kind, handle_metadata_message};
 use crate::clear_directory;
 use crate::cli::cli_format_path;
 use crate::workspace::CargoContext;

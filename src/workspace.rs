@@ -10,10 +10,6 @@ impl CargoContext {
         self.get_target_directory(Path::new("pgo-profiles"))
     }
 
-    pub fn get_bolt_directory(&self) -> anyhow::Result<PathBuf> {
-        self.get_target_directory(Path::new("bolt-profiles"))
-    }
-
     fn get_target_directory(&self, path: &Path) -> anyhow::Result<PathBuf> {
         let directory = self.target_directory.join(path);
         ensure_directory(&directory)?;
