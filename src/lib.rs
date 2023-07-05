@@ -15,8 +15,6 @@ use anyhow::anyhow;
 use std::ffi::OsStr;
 use std::process::{Command, ExitStatus};
 
-pub const GREETING: &'static str = "Hallo, Rust library here!";
-
 #[derive(Debug)]
 struct Utf8Output {
     stdout: String,
